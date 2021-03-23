@@ -1,0 +1,12 @@
+name: trends_appv2
+title: trends_appv2
+username:
+account: dougliebe
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 3396384
+bundleId: 3984302
+url: https://dougliebe.shinyapps.io/trends_appv2/
+when: 1607896238.45793
+asMultiple: FALSE
+asStatic: FALSE

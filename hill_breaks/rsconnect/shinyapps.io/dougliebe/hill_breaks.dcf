@@ -1,0 +1,12 @@
+name: hill_breaks
+title: hill_breaks
+username:
+account: dougliebe
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 3374397
+bundleId: 3962220
+url: https://dougliebe.shinyapps.io/hill_breaks/
+when: 1607461559.51149
+asMultiple: FALSE
+asStatic: FALSE

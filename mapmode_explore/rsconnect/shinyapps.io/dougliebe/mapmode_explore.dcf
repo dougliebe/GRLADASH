@@ -1,0 +1,12 @@
+name: mapmode_explore
+title: mapmode_explore
+username:
+account: dougliebe
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 3478272
+bundleId: 4360120
+url: https://dougliebe.shinyapps.io/mapmode_explore/
+when: 1616010155.87559
+asMultiple: FALSE
+asStatic: FALSE

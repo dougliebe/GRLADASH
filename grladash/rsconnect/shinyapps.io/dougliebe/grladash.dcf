@@ -1,0 +1,12 @@
+name: grladash
+title: grladash
+username:
+account: dougliebe
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 3297864
+bundleId: 4088398
+url: https://dougliebe.shinyapps.io/grladash/
+when: 1610491452.17515
+asMultiple: FALSE
+asStatic: FALSE
