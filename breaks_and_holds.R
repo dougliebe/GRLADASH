@@ -24,6 +24,7 @@ hardpoint_games <-
   filter(MODE_ID == 1) %>%
   left_join(series_q,
             by = "SERIES_ID") %>%
+  filter(DATE >= "2021-02-15") %>%
   collect()
 
 hardpoint_scores <- 
@@ -31,7 +32,7 @@ hardpoint_scores <-
   filter(GAME_ID %in% !!hardpoint_games$GAME_ID) %>%
   collect() %>%
   inner_join(hardpoint_games %>% select(-TEAM_A_SCORE, -TEAM_B_SCORE),
-             byb = "GAME_ID")
+             by = "GAME_ID")
 
 hardpoint_scores %>%
   select(MAP_ID, GAME_ID, TEAM_A_SCORE, TEAM_B_SCORE, TIME_S, A_ID, B_ID) %>%
@@ -51,7 +52,7 @@ hardpoint_scores %>%
   mutate(hill = pmax((TIME_S-6) %/% 60, 0)+1,
          seconds_into_hill = ((TIME_S-6) %% 60)+1,
          new_hill = ifelse(hill > lag(hill), hill, NA),
-         total_hills = ifelse(MAP_ID %in% c(43,44, 46, 49), 5, 4),
+         total_hills = ifelse(MAP_ID %in% c(43,44, 46, 49, 51), 5, 4),
          hill_no = hill-(((hill-1)%/%total_hills)*total_hills)) %>%
   group_by(GAME_ID, team, hill) %>%
   mutate(rotated = (hill > 1 & 
@@ -98,7 +99,7 @@ pp_data %>%
 
 pp_data %>%
   left_join(game_q %>% left_join(series_q) %>% select(GAME_ID, DATE) %>% collect(), "GAME_ID") %>%
-  filter(DATE > "2021-02-15") %>%
+  filter(DATE > "2021-03-09") %>%
   group_by(GAME_ID, TEAM_ID, hill, hill_no, MAP_ID) %>%
   summarise(rotated = any(rotated),
             broken = any(broken),
@@ -117,13 +118,26 @@ pp_data %>%
   rotation_data
 
 rotation_data %>%
-  group_by(TEAM_ID, MAP_ID, hill_no, rotated) %>%
+  filter(TEAM_ID == 6, MAP_ID == 41) %>%
+  group_by(MAP_ID, hill_no, rotated) %>%
   summarise(rotation_score = mean(score)-mean(opp_score),
+            rot_pts = mean(score),
             hills = n()) %>%
-  filter(TEAM_ID == 6) %>%
   ggplot(aes(hill_no, rotation_score, fill = rotated))+
   geom_col(position = 'dodge') +
   facet_wrap(~MAP_ID)
+
+rotation_data %>%
+  filter(TEAM_ID == 6, MAP_ID == 41) %>%
+  group_by(MAP_ID, breakoff = (hill == 1), hill_no) %>%
+  summarise(rotation_score = mean(score)-mean(opp_score),
+            rot_pts = mean(score),
+            hills = n())
+# %>%
+  ggplot(aes(hill, rotation_score))+
+  geom_col(position = 'dodge') +
+  facet_wrap(~MAP_ID)
+
 
 rotation_data %>%
   filter(rotated, MAP_ID < 50, MAP_ID > 40) %>%
