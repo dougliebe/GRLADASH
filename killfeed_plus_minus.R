@@ -88,16 +88,17 @@ was_traded %>%
 # get relevant games form series
 series_q %>%
   left_join(game_q, by = "SERIES_ID") %>%
-  # filter(MAP_ID < 50) %>%
-  filter(MODE_ID %in% c(1,3)) %>%
+  filter(MAP_ID < 52) %>%
+  filter(MODE_ID %in% c(1)) %>%
   # filter(DATE >= "2021-03-01") %>%
-  # filter(SERIES_ID %in% c(204,205)) %>%
+  # filter(SERIES_ID %in% c(228,227)) %>%
   # filter(A_ID == 8 | B_ID == 8) %>%
   select(GAME_ID, MAP_ID, MODE_ID, TEAM_A_SCORE, TEAM_B_SCORE) %>%
   collect() ->
   games
 
 all_games_trade_box %>%
+  mutate(value = tolower(parse_character(value))) %>%
   inner_join(games, by = "GAME_ID") %>%
   mutate(rounds = TEAM_A_SCORE + TEAM_B_SCORE) %>%
   # mutate(rounds_ctl = case_when(
@@ -109,7 +110,7 @@ all_games_trade_box %>%
   out
 
 out %>%
-  mutate(value = tolower(value)) %>%
+  mutate(value = tolower(parse_character(value))) %>%
   mutate(value = ifelse(endsWith(value, 'cheen'), 'cheen',value)) %>%
    mutate(value = recode(value, "6" = "c6",
                         "m|cheen" = "mjcheen",
@@ -124,8 +125,8 @@ out %>%
   # filter(TEAM_ID == 14) %>%
   # filter(value == "clayster") %>%
   # filter(value %in% c("cheen", 'nero','mental','exceed')) %>%
-  filter(value %in% c("vivid","assault", "silly", "apathy")) %>%
-  group_by(GAME_ID, MAP_ID, value) %>%
+  # filter(value %in% c("vivid","assault", "silly", "apathy")) %>%
+  group_by( value) %>%
   summarise(untraded_KILL = sum(KILL_FALSE)/sum(KILL_FALSE+KILL_TRUE),
           traded_deaths = sum(DEATH_TRUE)/sum(DEATH_TRUE+DEATH_FALSE),
           kills = sum(KILL_FALSE+KILL_TRUE),
@@ -138,7 +139,9 @@ out %>%
           ) %>%
           mutate(corr_epm = epm + (-0.3*pmpm)
          ) %>%
-  arrange( (MAP_ID)) 
+  arrange( (traded_deaths)) %>%
+  filter(kills > 200) %>%
+  view()
 
 ### plot utk and td for each map player
 
@@ -153,7 +156,7 @@ annotations <- tibble(
 library(ggtext)
 library(ggrepel)
 out %>%
-  mutate(value = tolower(value)) %>%
+  mutate(value = tolower(parse_character(value))) %>%
   mutate(value = ifelse(endsWith(value, 'cheen'), 'cheen',value)) %>%
   mutate(value = recode(value, "6" = "c6",
                         "m|cheen" = "mjcheen",
@@ -216,6 +219,7 @@ out %>%
 
 ## TEAM
 out %>%
+  mutate(value = tolower(parse_character(value))) %>%
   mutate(team = case_when(value %in% c("Vivid","Assault", "Silly", "Apathy") ~ "LAG",
                           TRUE ~ "THEM")) %>%
   mutate(value = recode(value, "6" = "C6",
@@ -235,21 +239,23 @@ out %>%
   left_join(team_q %>% collect())
   filter(team == "LAG")
 
+  
+  ## team untraded deaths
 out %>%
+  mutate(value = tolower(parse_character(value))) %>%
   left_join(game_q %>%
               left_join(series_q) %>% 
               collect() %>%
               select(GAME_ID, DATE),
             by = "GAME_ID") %>%
-  mutate(value = tolower(value),
-         team = case_when(value %in% c("vivid","assault", "silly", "apathy") ~ "LAG",
+  mutate(team = case_when(value %in% c("vivid","assault", "silly", "apathy") ~ "LAG",
                           TRUE ~ "THEM")) %>%
   mutate(value = recode(value, "6" = "c6",
                         "m|cheen" = "mjcheen",
                         "m]cheen" = "mjcheen",
                         "[«" = "c6")) %>%
   filter(team == "LAG") %>%
-  group_by(DATE,value) %>%
+  # group_by(DATE) %>%
   summarise( deaths_per_rd = sum(DEATH_TRUE+DEATH_FALSE)/sum(rounds),
     untraded_KILL = sum(KILL_FALSE)/sum(KILL_FALSE+KILL_TRUE),
     traded_deaths = sum(DEATH_TRUE)/sum(DEATH_TRUE+DEATH_FALSE),
@@ -257,13 +263,13 @@ out %>%
     # actual_pm_10 = sum(KILL_FALSE+KILL_TRUE-DEATH_TRUE-DEATH_FALSE)/sum(duration)*600,
     pm10 = sum(pm)/sum(duration)*600,
     games = length(unique(GAME_ID))) %>%
-  ggplot(aes(lubridate::as_date(DATE), traded_deaths, color = value))+
+  ggplot(aes(lubridate::as_date(DATE), traded_deaths))+
   # geom_hline(yintercept = 0.5, lty = 2)+
   geom_line()+geom_point()+
   # facet_wrap(~value)+
   geom_smooth(method = 'lm', se = F)+
   # theme_bw()+
-  labs(x = "Date", y = "adj. +/-")
+  labs(x = "Date", y = "traded deaths, %")
 # +
   # theme(legend.position = 'none')
 

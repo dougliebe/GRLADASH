@@ -97,7 +97,7 @@ scores %>%
   mutate(hill = pmax((TIME_S-6) %/% 60, 0)+1,
          seconds_into_hill = ((TIME_S-6) %% 60)+1,
          new_hill = ifelse(hill > lag(hill), hill, NA),
-         total_hills = ifelse(MAP_ID %in% c(43,44, 46, 49), 5, 4),
+         total_hills = ifelse(MAP_ID %in% c(43,44, 46, 49,51), 5, 4),
          hill_no = hill-(((hill-1)%/%total_hills)*total_hills),
          side = case_when(
            team == "TEAM_A_SCORE" & round%%2==1 ~ "OFF",
@@ -159,8 +159,8 @@ pp_data %>%
          kd = (KILL_FALSE+KILL_TRUE)/(DEATH_TRUE+DEATH_FALSE),
          # epm = (KILL_FALSE+KILL_TRUE+DEATH_TRUE+DEATH_FALSE)/duration*60,
          pm = KILL_FALSE + 0.2*KILL_TRUE - 0.2*DEATH_TRUE - DEATH_FALSE,
-         value = tolower(value)) %>%
-  filter((value %in% c("vivid","assault", "silly", "apathy"))) ->
+         value = tolower(value)) ->
+  # filter((value %in% c("vivid","assault", "silly", "apathy"))) ->
   all_games_trade_box 
 
 ## add durations and get season averages
