@@ -10,7 +10,7 @@
 
 ## get hill + side data
 source("helper_get_hillside_data.R")
-get_HP_data(days_ = 14) %>%
+get_HP_data(days_ = 7) %>%
   group_by(TEAM_ID, GAME_ID, MAP_ID, hill, hill_no) %>%
   summarise(score = max(score)-min(score)) %>%
   group_by(GAME_ID, MAP_ID, hill, hill_no) %>%

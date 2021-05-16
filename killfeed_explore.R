@@ -86,7 +86,7 @@ all_teams_ppk %>%
 
 
 all_teams_ppk %>%
-  filter(PLAYER_TEAM == 6) %>%
+  filter(PLAYER_TEAM == 6, DATE >= "2021-04-15") %>%
   group_by(DATE, MAP_NAME) %>%
   summarise(ppk = sum(TEAM_SCORE)/sum(kills),
             DATE = lubridate::as_datetime(DATE)) %>%

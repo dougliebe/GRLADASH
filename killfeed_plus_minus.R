@@ -21,12 +21,12 @@ killfeed_q <- tbl(con, "KILLFEED")
 
 
 
-killfeed_q %>%
-  filter(GAME_ID == 767) %>%
-  collect() %>%
-  pivot_longer(c(PLAYER_A, PLAYER_B)) %>%
-  group_by(value, name) %>%
-  count()
+# killfeed_q %>%
+#   filter(GAME_ID == 767) %>%
+#   collect() %>%
+#   pivot_longer(c(PLAYER_A, PLAYER_B)) %>%
+#   group_by(value, name) %>%
+#   count()
 
 killfeed_q %>%
   # filter(GAME_ID == 767) %>%
@@ -88,10 +88,10 @@ was_traded %>%
 # get relevant games form series
 series_q %>%
   left_join(game_q, by = "SERIES_ID") %>%
-  # filter(MAP_ID < 50) %>%
+  # filter(MAP_ID != 49) %>%
   filter(MODE_ID %in% c(1,3)) %>%
-  # filter(DATE >= "2021-03-01") %>%
-  # filter(SERIES_ID %in% c(204,205)) %>%
+  # filter(DATE >= "2021-05-03") %>%
+  filter(SERIES_ID %in% c(244,245)) %>%
   # filter(A_ID == 8 | B_ID == 8) %>%
   select(GAME_ID, MAP_ID, MODE_ID, TEAM_A_SCORE, TEAM_B_SCORE) %>%
   collect() ->
@@ -119,13 +119,13 @@ out %>%
                         "asim*y" = "asim",
                         "asimy" = "asim",
                         "yivid"='vivid'),
-         team = case_when(value %in% c("vivid","assault", "silly", "apathy") ~ "LAG",
+         team = case_when(value %in% c("vivid",'cheen',"assault", "silly", "apathy") ~ "LAG",
                           TRUE ~ "THEM")) %>%
   # filter(TEAM_ID == 14) %>%
-  # filter(value == "clayster") %>%
+  # filter(value == "dylan") %>%
   # filter(value %in% c("cheen", 'nero','mental','exceed')) %>%
-  filter(value %in% c("vivid","assault", "silly", "apathy")) %>%
-  group_by(GAME_ID, MAP_ID, value) %>%
+  filter(value %in% c("cheen","assault", "silly", "apathy")) %>%
+  group_by( value) %>%
   summarise(untraded_KILL = sum(KILL_FALSE)/sum(KILL_FALSE+KILL_TRUE),
           traded_deaths = sum(DEATH_TRUE)/sum(DEATH_TRUE+DEATH_FALSE),
           kills = sum(KILL_FALSE+KILL_TRUE),
@@ -137,8 +137,8 @@ out %>%
           games = length(unique(GAME_ID))
           ) %>%
           mutate(corr_epm = epm + (-0.3*pmpm)
-         ) %>%
-  arrange( (MAP_ID)) 
+         )%>%
+  select(-pmpm, -epm)
 
 ### plot utk and td for each map player
 
@@ -167,7 +167,7 @@ out %>%
                           TRUE ~ "THEM")) %>%
   # filter(TEAM_ID == 14) %>%
   # filter(value %in% c("cheen", 'nero','mental','exceed')) %>%
-  filter(value %in% c("vivid","assault", "silly", "apathy")) %>%
+  filter(value %in% c("cheen","assault", "silly", "apathy")) %>%
   group_by( MAP_ID, MODE_ID, value) %>%
   summarise(untraded_KILL = sum(KILL_FALSE)/sum(KILL_FALSE+KILL_TRUE),
             traded_deaths = sum(DEATH_TRUE)/sum(DEATH_TRUE+DEATH_FALSE),
@@ -216,24 +216,32 @@ out %>%
 
 ## TEAM
 out %>%
-  mutate(team = case_when(value %in% c("Vivid","Assault", "Silly", "Apathy") ~ "LAG",
+  mutate(value = endsWith(value, "cheen"), "cheen", tolower(value)) %>%
+  # count(value)
+  mutate(team = case_when(value %in% c("mjcheen","assault", "silly", "apathy") ~ "LAG",
                           TRUE ~ "THEM")) %>%
-  mutate(value = recode(value, "6" = "C6",
-                        "M|Cheen" = "MJCheen",
-                        "M]Cheen" = "MJCheen",)) %>%
-  group_by(GAME_ID, TEAM_ID) %>%
+  # mutate(value = recode(value, "6" = "C6",
+  #                       "M|Cheen" = "MJCheen",
+  #                       "M]Cheen" = "MJCheen",)) %>%
+  group_by(GAME_ID,MAP_ID, MODE_ID, TEAM_ID) %>%
   summarise(untraded_KILL = sum(KILL_FALSE),
-    traded_deaths = sum(DEATH_TRUE),
-    kd = sum(KILL_FALSE+KILL_TRUE)/sum(DEATH_TRUE+DEATH_FALSE),
-    # actual_pm_10 = sum(KILL_FALSE+KILL_TRUE-DEATH_TRUE-DEATH_FALSE)/mean(duration)*600,
-    pm10 = sum(pm)/mean(duration)*600,
-    games = length(unique(GAME_ID))) %>%
+            traded_deaths = sum(DEATH_TRUE),
+            kd = sum(KILL_FALSE+KILL_TRUE)/sum(DEATH_TRUE+DEATH_FALSE),
+            deaths = sum(DEATH_FALSE + DEATH_TRUE),
+            traded_deaths_pct = sum(DEATH_TRUE)/sum(DEATH_TRUE + DEATH_FALSE),
+            traded_deaths_pct = sum(DEATH_TRUE)/sum(DEATH_TRUE + DEATH_FALSE),
+            untraded_kills_pct = sum(KILL_FALSE)/sum(KILL_FALSE+KILL_TRUE),
+            # actual_pm_10 = sum(KILL_FALSE+KILL_TRUE-DEATH_TRUE-DEATH_FALSE)/mean(duration)*600,
+            pm10 = sum(pm)/mean(duration)*600,
+            games = length(unique(GAME_ID))) %>%
   group_by(TEAM_ID) %>%
   summarise(games = n(),
-            pm10 = mean(pm10)) %>%
+            pm10 = mean(pm10),
+            tds = sum(traded_deaths)/sum(deaths)) %>%
   arrange(desc(pm10)) %>%
-  left_join(team_q %>% collect())
-  filter(team == "LAG")
+  left_join(team_q %>% collect()) %>%
+  filter(TEAM_NAME == "Guerrillas")
+filter(team == "LAG")
 
 out %>%
   left_join(game_q %>%
@@ -327,3 +335,86 @@ out %>%
              alpha = 0.8,
              label.size = 0, size = 3)+
   theme_bw()
+
+
+### Team pace by game
+out %>%
+  group_by( MAP_ID, MODE_ID, GAME_ID, TEAM_ID) %>%
+  summarise(untraded_KILL = sum(KILL_FALSE)/sum(KILL_FALSE+KILL_TRUE),
+            traded_deaths = sum(DEATH_TRUE)/sum(DEATH_TRUE+DEATH_FALSE),
+            kills = sum(KILL_FALSE+KILL_TRUE),
+            deaths = sum(DEATH_TRUE+DEATH_FALSE),
+            kd = sum(KILL_FALSE+KILL_TRUE)/sum(DEATH_TRUE+DEATH_FALSE),
+            pmpm = sum(KILL_FALSE+KILL_TRUE-DEATH_TRUE-DEATH_FALSE)/sum(duration/4)*60,
+            epm = sum(KILL_FALSE+KILL_TRUE+DEATH_TRUE+DEATH_FALSE)/sum(duration/4)*60,
+            pm10 = sum(pm)/sum(duration/4)*600,
+            games = length(unique(GAME_ID))
+  ) %>%
+  left_join(map_q %>% collect()) %>%
+  left_join(mode_q %>% collect()) %>%
+  mutate(corr_epm = epm + (-0.2*pmpm),
+         map_mode = paste0(MODE_ALIAS,"\n", MAP_NAME),
+         trade_death_pm = traded_deaths * corr_epm,
+         untrade_kill_pm = untraded_KILL * corr_epm
+  ) %>%
+  left_join(game_q %>% select(GAME_ID, SERIES_ID, TEAM_A_SCORE, TEAM_B_SCORE) %>%
+              collect()) %>%
+  left_join(series_q %>% collect) %>%
+  mutate(win = case_when(A_ID == TEAM_ID ~ (TEAM_A_SCORE > TEAM_B_SCORE),
+                         TRUE ~ (TEAM_B_SCORE > TEAM_A_SCORE))) %>%
+  filter(TEAM_ID == 6) %>%
+  group_by(MAP_NAME, MODE_NAME) %>%
+  mutate(pace_percentiles = percent_rank(corr_epm),
+         pace_brks = cut(pace_percentiles, seq(0,1,0.2))) %>%
+  filter(MAP_NAME == "Checkmate",MODE_ID == 3, corr_epm < 16)
+  ggplot(aes(epm, kd))+geom_point()
+  # filter(MAP_ID == 41, MODE_ID == 1, pace_brks == "(0.9,1]")
+  group_by(MAP_NAME, MODE_NAME, pace_brks) %>%
+  summarise(win_pct = mean(win),
+            wins = sum(win),
+            n = n()) %>%
+  filter(MAP_NAME != "Express") %>%
+  # filter(n > 5) %>%
+    ggplot(aes(as.numeric(pace_brks)/5, win_pct, color = MAP_NAME))+
+  geom_line(size = 1)+
+  facet_wrap(~MODE_NAME)+
+  scale_y_continuous(labels = scales::percent) +
+  labs(x = "Pace Percentile\n0-slowest 1-fastest",
+       y = "Map Win%")
+
+
+out %>%
+  group_by( MAP_ID, MODE_ID, GAME_ID, TEAM_ID) %>%
+  summarise(untraded_KILL = sum(KILL_FALSE)/sum(KILL_FALSE+KILL_TRUE),
+            traded_deaths = sum(DEATH_TRUE)/sum(DEATH_TRUE+DEATH_FALSE),
+            kills = sum(KILL_FALSE+KILL_TRUE),
+            deaths = sum(DEATH_TRUE+DEATH_FALSE),
+            kd = sum(KILL_FALSE+KILL_TRUE)/sum(DEATH_TRUE+DEATH_FALSE),
+            pmpm = sum(KILL_FALSE+KILL_TRUE-DEATH_TRUE-DEATH_FALSE)/sum(duration/4)*60,
+            epm = sum(KILL_FALSE+KILL_TRUE+DEATH_TRUE+DEATH_FALSE)/sum(duration/4)*60,
+            pm10 = sum(pm)/sum(duration/4)*600,
+            games = length(unique(GAME_ID))
+  ) %>%
+  left_join(map_q %>% collect()) %>%
+  left_join(mode_q %>% collect()) %>%
+  mutate(corr_epm = epm + (-0.2*pmpm),
+         map_mode = paste0(MODE_ALIAS,"\n", MAP_NAME),
+         trade_death_pm = traded_deaths * corr_epm,
+         untrade_kill_pm = untraded_KILL * corr_epm
+  ) %>%
+  left_join(game_q %>% select(GAME_ID, SERIES_ID, TEAM_A_SCORE, TEAM_B_SCORE) %>%
+              collect()) %>%
+  left_join(series_q %>% collect) %>%
+  mutate(win = case_when(A_ID == TEAM_ID ~ (TEAM_A_SCORE > TEAM_B_SCORE),
+                         TRUE ~ (TEAM_B_SCORE > TEAM_A_SCORE))) %>%
+  filter(TEAM_ID == 6) %>%
+  group_by(MAP_NAME, MODE_NAME) %>%
+  mutate(pace_percentiles = percent_rank(corr_epm),
+         pace_brks = cut(pace_percentiles, seq(0,1,0.2))) %>%
+  filter(SERIES_ID %in% c(234,235), MODE_ID == 1) %>%
+  mutate(score = case_when(
+    A_ID == TEAM_ID ~ paste0(TEAM_A_SCORE, "-",TEAM_B_SCORE),
+    TRUE ~ paste0(TEAM_B_SCORE, "-", TEAM_A_SCORE)
+  )) %>%
+  select(GAME_ID, MAP_NAME, MODE_NAME, corr_epm, pace_percentiles, score) %>%
+  arrange(pace_percentiles)

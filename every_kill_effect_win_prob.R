@@ -32,13 +32,10 @@ score_q %>%
   pivot_longer(c(TEAM_A_SCORE, TEAM_B_SCORE), names_to = "team", values_to = "score") %>%
   group_by(GAME_ID, team) %>%
   filter(score >= 0,
-         # TIME_S > 4, 
+         TIME_S >= 6,
          score < 250,
-         MAP_ID < 50,
          # !cumany(TEAM_A_SCORE == -1 & TEAM_B_SCORE == -1),
-         !cumany(score == 249),
-         MODE_ID == 1,
-         score == cummax(score)
+         !cumany(score == 249)
   ) %>%
   # left_join(hill_num, by = "")
   mutate(win = ifelse(team == "TEAM_A_SCORE", A_SCORE > B_SCORE, B_SCORE > A_SCORE),
@@ -125,4 +122,40 @@ pp_data %>% filter(TEAM_ID == 6, GAME_ID > 950) %>%
   theme(legend.position = 'none',
         axis.text = element_blank(),
         axis.ticks = element_blank())
+
+## get win% change start to end of each hill
+get_HP_data(30) -> data
+data %>%
+  group_by(GAME_ID, TIME_S) %>%
+  mutate(opp_score = sum(score)-score) %>%
+  group_by(GAME_ID) %>%
+  mutate(diff = score - opp_score,
+         ttw = 250 - pmax(score, opp_score)) %>%
+  filter(TEAM_ID == 6) %>%
+  ungroup() %>%
+  mutate(win_prob = predict(score_fit, ., type = 'prob')$.pred_TRUE) %>%
+  group_by(GAME_ID, TEAM_ID,MAP_ID, hill, hill_no) %>%
+  summarise(start_win = win_prob[1],
+            end_win = win_prob[n()],
+            score_added = max(score)-min(score)) %>%
+  group_by(GAME_ID) %>%
+  filter(hill != max(hill), hill <= 10, MAP_ID != 42) %>%
+  mutate(win_added = end_win - start_win) %>%
+  arrange(GAME_ID, hill) %>%
+  left_join(map_q %>% collect()) %>%
+  group_by(MAP_NAME,  hill) %>%
+  summarise(avg_win_added = mean(win_added),
+            win_sd = sd(win_added),
+            avg_score_added = mean(score_added),
+            score_sd = sd(score_added)) %>%
+  ggplot() +
+  geom_col(aes(as.factor(hill), avg_win_added, fill = avg_win_added), color = 'black')+
+  # geom_errorbar(aes(as.factor(hill), ymin = avg_win_added-win_sd, ymax = avg_win_added+win_sd)) +
+  facet_wrap(~MAP_NAME, scales = 'free_x')+
+  scale_y_continuous(labels = scales::percent)+
+  scale_fill_distiller(palette = "RdYlBu", direction = 1)+
+  theme_bw()+
+  labs(x = "Hill",
+       y = "Win% Added per Hill")+
+  theme(legend.position = 'none')
   

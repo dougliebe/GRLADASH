@@ -135,7 +135,7 @@ scores %>%
 ## now combine score info per second and kills
 pp_data %>%
   inner_join(was_traded, by = c("GAME_ID", "TIME_S")) %>%
-  inner_join(game_q %>% left_join(series_q) %>% filter(DATE >= "2021-03-11") %>%
+  inner_join(game_q %>% left_join(series_q) %>% filter(DATE >= "2021-04-15") %>%
                collect() %>% select(GAME_ID, SERIES_ID)) %>%
   # group_by(SERIES_ID) %>% count()
   # filter(SERIES_ID == 138) %>%
@@ -160,7 +160,7 @@ pp_data %>%
          # epm = (KILL_FALSE+KILL_TRUE+DEATH_TRUE+DEATH_FALSE)/duration*60,
          pm = KILL_FALSE + 0.2*KILL_TRUE - 0.2*DEATH_TRUE - DEATH_FALSE,
          value = tolower(value)) %>%
-  filter((value %in% c("vivid","assault", "silly", "apathy"))) ->
+  filter((value %in% c('mjcheen','cheen',"vivid","assault", "silly", "apathy"))) ->
   all_games_trade_box 
 
 ## add durations and get season averages
@@ -191,7 +191,7 @@ pp_data %>%
   #        # epm = (KILL_FALSE+KILL_TRUE+DEATH_TRUE+DEATH_FALSE)/duration*60,
   #        pm = KILL_FALSE + 0.2*KILL_TRUE - 0.2*DEATH_TRUE - DEATH_FALSE,
   #        value = tolower(value)) %>%
-  filter((value %in% c("vivid","assault", "silly", "apathy"))) %>%
+  filter((value %in% c('mjcheen','cheen',"vivid","assault", "silly", "apathy"))) %>%
   left_join(was_traded %>% group_by(GAME_ID) %>% summarise(duration = max(TIME_S)-min(TIME_S)),
             by = "GAME_ID") %>%
   group_by(MAP_ID, value) %>%
@@ -225,7 +225,7 @@ pp_data %>%
               values_from = n) %>%
   mutate(across(starts_with(c("DEATH", "KILL")), 
                 ~replace_na(.x, replace = 0))) %>%
-  filter((value %in% c("vivid","assault", "silly", "apathy"))) %>%
+  filter((value %in% c('mjcheen','cheen',"vivid","assault", "silly", "apathy"))) 
   group_by(MAP_ID,hill_side ,value) %>%
   summarise(kpm = sum(KILL)/sum(hill_times),
             dpm =  sum(DEATH)/sum(hill_times),
@@ -348,5 +348,53 @@ ctl_games_trade_box %>%
   labs(x = element_blank(), y = "adj. +/-",
        title = "Adjusted Plus-Minus",
        subtitle = "Less weight to net-zero engaegments: \ntraded deaths & tradable kills")
+
+## draw graphs of lives over time in ctl
+killfeed_q %>%
+  left_join(game_q, by = "GAME_ID") %>%
+  filter(MODE_ID == 3) %>%
+  collect() ->
+  ctl_killfeed
+  
+ctl_killfeed %>%
+  bind_rows(scores %>%
+              filter(MODE_ID == 3) %>%
+              group_by(GAME_ID) %>%
+              # pivot_longer(c(TEAM_A_SCORE, TEAM_B_SCORE),
+              #              names_to = 'team', values_to = "score") %>%
+              mutate(round = (1:n())-1) %>%
+              mutate(
+                team_off = ifelse(round%%2==1, A_ID, B_ID)
+              )) %>%
+  arrange(GAME_ID, TIME_S) %>%
+  group_by(GAME_ID) %>%
+  fill(team_off, MAP_ID, MODE_ID, round, .direction = 'up') %>%
+  filter(!is.na(KILL_ID)) ->
+  ctl_kill_with_rounds
+  
+ctl_kill_with_rounds %>%
+  group_by(GAME_ID) %>%
+  # filter(GAME_ID == 534) %>%
+  group_by(GAME_ID,MAP_ID, round, team_off, TEAM_B_ID) %>%
+  summarise(min_kills = min(30-(1:n()))) %>%
+  group_by(GAME_ID,MAP_ID, round,) %>%
+  mutate(round_diff = min_kills - (sum(min_kills)-min_kills)) %>%
+  filter(team_off == TEAM_B_ID, round != 5,
+         MAP_ID %in% c(43, 44,49)) %>%
+  # ungroup() %>%
+  # summarise(m = mean(round_diff))
+  # group_by(MAP_ID)
+  # mutate(kills_left = 30-(1:n())) %>%
+  # view()
+  ggplot(aes( round_diff)) +
+  geom_density(size = 1, fill = 'grey')+
+  theme_bw() +
+  labs(x = "Kill Differential", y = element_blank(),
+       title = "Offense Control Life Differentials")+
+  theme(axis.title.y = element_blank(),
+        axis.title.x = element_text(size = 16),
+        axis.text.x = element_text(size = 14),
+        title = element_text(size = 18)) +
+  geom_vline(xintercept = -1.06)
 
 
