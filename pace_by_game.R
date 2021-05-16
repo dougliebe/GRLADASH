@@ -24,12 +24,20 @@ all_players_box %>%
        subtitle = "1.0 is player average, not team")
 
 all_players_box %>%
-  filter(TEAM_ID == 6, DATE >= "2021-02-15") %>%
+  filter(TEAM_ID == 6, DATE >= "2021-02-15", MODE_ID == 3) %>%
   filter(player %in% c("vivid","assault", "silly", "apathy")) %>%
   mutate(pace_engs = engs - (0.3/60*(kills-deaths)),
          epm_adj = pace_engs/DURATION*600) %>%
-  group_by(MODE_ID, MAP_ID, player, WIN) %>%
-  summarise(pace = mean(epm_adj, na.rm = T))
+  # group_by(MODE_ID, MAP_ID, player, WIN) %>%
+  # summarise(pace = mean(epm_adj, na.rm = T)) %>%
+  left_join(map_q %>% collect() ) %>%
+  group_by(player, MAP_NAME) %>%
+  filter(epm_adj > 20) %>%
+  # summarise(pace = mean(epm_adj),
+  #           win_p = mean(win_pct))
+  ggplot(aes(epm_adj, color = WIN))+
+  geom_density()+
+  facet_wrap(~player)
 
 all_players_box %>%
   filter(TEAM_ID == 6, DATE >= "2021-02-15", MODE_ID == 1) %>%
@@ -39,8 +47,8 @@ all_players_box %>%
          epm_adj = pace_engs/DURATION*600) %>%
   left_join(map_q %>% collect() ) %>%
   group_by(player, MAP_NAME) %>%
-  summarise(pace = mean(epm_adj),
-            win_p = mean(win_pct))
-  ggplot(aes(epm_adj, color = MAP_ID))+
+  # summarise(pace = mean(epm_adj),
+  #           win_p = mean(win_pct))
+  ggplot(aes(epm_adj, color = MAP_NAME))+
   geom_density()+
   facet_wrap(~player)

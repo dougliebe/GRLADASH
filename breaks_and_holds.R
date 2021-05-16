@@ -99,7 +99,7 @@ pp_data %>%
 
 pp_data %>%
   left_join(game_q %>% left_join(series_q) %>% select(GAME_ID, DATE) %>% collect(), "GAME_ID") %>%
-  filter(DATE > "2021-03-09") %>%
+  filter(DATE > "2021-02-01") %>%
   group_by(GAME_ID, TEAM_ID, hill, hill_no, MAP_ID) %>%
   summarise(rotated = any(rotated),
             broken = any(broken),
@@ -140,19 +140,16 @@ rotation_data %>%
 
 
 rotation_data %>%
+  filter(TEAM_ID == 6) %>%
   filter(rotated, MAP_ID < 50, MAP_ID > 40) %>%
-  group_by(TEAM_ID, MAP_ID, hill_no) %>%
+  group_by(MAP_ID, hill_no) %>%
   summarise(break_time = mean(first_broken + (!broken)*60),
             us = TRUE, n = n()) %>%
-  filter(TEAM_ID == 6) %>%
   bind_rows(rotation_data %>%
-              filter(rotated, MAP_ID < 50, MAP_ID > 40) %>%
-              filter(rotated) %>%
-              group_by(TEAM_ID, MAP_ID, hill_no) %>%
-              summarise(break_time = mean(first_broken + (!broken)*60)) %>%
               filter(TEAM_ID != 6) %>%
-              group_by(MAP_ID, hill_no) %>%
-              summarise(break_time = mean(break_time),
+              filter(rotated, MAP_ID < 50, MAP_ID > 40) %>%
+              group_by( MAP_ID, hill_no) %>%
+              summarise(break_time = mean(first_broken + (!broken)*60),
                         n= n(),
                         us = FALSE)) %>%
   left_join(map_q %>% collect(), by = "MAP_ID") %>%
@@ -168,23 +165,23 @@ rotation_data %>%
   ggtitle("Time until broken when rotated")
   
 rotation_data %>%
+  filter(TEAM_ID == 6) %>%
   filter(opp_rotated) %>%
-  group_by(TEAM_ID, MAP_ID, hill_no) %>%
+  group_by(MAP_ID, hill_no) %>%
   summarise(break_time = mean(first_broke + (first_broke == 0)*60),
             us = TRUE, n = n()) %>%
-  filter(TEAM_ID == 6) %>%
-  bind_rows(rotation_data %>%
-              filter(opp_rotated) %>%
-              group_by(TEAM_ID, MAP_ID, hill_no) %>%
-              summarise(break_time = mean(first_broke + (first_broke == 0)*60)) %>%
-              filter(TEAM_ID != 6) %>%
-              group_by(MAP_ID, hill_no) %>%
-              summarise(break_time = mean(break_time),
-                        us = FALSE)) %>%
+  # bind_rows(rotation_data %>%
+  #             filter(opp_rotated) %>%
+  #             group_by(TEAM_ID, MAP_ID, hill_no) %>%
+  #             summarise(break_time = mean(first_broke + (first_broke == 0)*60)) %>%
+  #             filter(TEAM_ID != 6) %>%
+  #             group_by(MAP_ID, hill_no) %>%
+  #             summarise(break_time = mean(break_time),
+  #                       us = FALSE)) %>%
   left_join(map_q %>% collect(), by = "MAP_ID") %>%
-  ggplot(aes(hill_no, break_time, fill = us))+
+  ggplot(aes(as.factor(hill_no), break_time, fill = us, width = n/50))+
   geom_col(position = 'dodge') +
-  facet_wrap(~MAP_NAME) +
+  facet_wrap(~MAP_NAME, scales = 'free_x') +
   scale_fill_manual(values = c('TRUE' = '#60269e', 'FALSE' = "#595959"))+
   theme_minimal()+
   ggtitle("Time to break when opponent rotated")

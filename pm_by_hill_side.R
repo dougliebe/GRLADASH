@@ -97,7 +97,7 @@ scores %>%
   mutate(hill = pmax((TIME_S-6) %/% 60, 0)+1,
          seconds_into_hill = ((TIME_S-6) %% 60)+1,
          new_hill = ifelse(hill > lag(hill), hill, NA),
-         total_hills = ifelse(MAP_ID %in% c(43,44, 46, 49), 5, 4),
+         total_hills = ifelse(MAP_ID %in% c(43,44, 46, 49,51), 5, 4),
          hill_no = hill-(((hill-1)%/%total_hills)*total_hills),
          side = case_when(
            team == "TEAM_A_SCORE" & round%%2==1 ~ "OFF",
