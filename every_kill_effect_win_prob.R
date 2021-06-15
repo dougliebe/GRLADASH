@@ -41,7 +41,7 @@ score_q %>%
   mutate(win = ifelse(team == "TEAM_A_SCORE", A_SCORE > B_SCORE, B_SCORE > A_SCORE),
          hill = pmax((TIME_S-5) %/% 60, 0)+1,
          seconds_into_hill = ((TIME_S-5) %% 60)+1,
-         total_hills = ifelse(MAP_ID %in% c(43,44, 46,49), 5, 4),
+         total_hills = ifelse(MAP_ID %in% c(43,44, 46,49, 51), 5, 4),
          hill_no = hill-(((hill-1)%/%total_hills)*total_hills)) %>%
   select(GAME_ID,MAP_ID, TIME_S, team, score, win, total_hills) %>%
   group_by(GAME_ID, TIME_S) %>%
@@ -131,7 +131,7 @@ data %>%
   group_by(GAME_ID) %>%
   mutate(diff = score - opp_score,
          ttw = 250 - pmax(score, opp_score)) %>%
-  filter(TEAM_ID == 6) %>%
+  filter(TEAM_ID == 6, MAP_ID != 53) %>%
   ungroup() %>%
   mutate(win_prob = predict(score_fit, ., type = 'prob')$.pred_TRUE) %>%
   group_by(GAME_ID, TEAM_ID,MAP_ID, hill, hill_no) %>%
@@ -143,11 +143,12 @@ data %>%
   mutate(win_added = end_win - start_win) %>%
   arrange(GAME_ID, hill) %>%
   left_join(map_q %>% collect()) %>%
-  group_by(MAP_NAME,  hill) %>%
+  group_by(MAP_NAME,  hill = hill_no) %>%
   summarise(avg_win_added = mean(win_added),
             win_sd = sd(win_added),
             avg_score_added = mean(score_added),
-            score_sd = sd(score_added)) %>%
+            score_sd = sd(score_added),
+            n = n()) %>%
   ggplot() +
   geom_col(aes(as.factor(hill), avg_win_added, fill = avg_win_added), color = 'black')+
   # geom_errorbar(aes(as.factor(hill), ymin = avg_win_added-win_sd, ymax = avg_win_added+win_sd)) +

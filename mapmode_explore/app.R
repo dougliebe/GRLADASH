@@ -23,8 +23,8 @@ sidebar <- dashboardSidebar(
         ),
         menuItem("Overall", tabName = 'overall', icon = icon("dashboard")),
         menuItem("Hardpoint", tabName = 'hardpoint', icon = icon("angle-double-down")),
-        menuItem("Control", tabName = 'control', icon = icon("flag")),
-        menuItem("Search & Destroy", tabName = 'search', icon = icon("bomb"))
+        menuItem("Control", tabName = 'control', icon = icon("flag"))
+        # menuItem("Search & Destroy", tabName = 'search', icon = icon("bomb"))
     )
 )
 
@@ -97,20 +97,20 @@ body <- dashboardBody(
                         dataTableOutput("recent_ctl")
                     )
                 )
-            ),
+            )
         
         ## SEARCH AND DESTROY
-        tabItem(tabName = "search",
-                box(
-                    selectInput(inputId = 'snd_select',
-                                label = "Choose Specific Map",
-                                choices = snd_list %>% append(list("All"=1)),
-                                selected = 1
-                    ),width = 3
-                ),
-                valueBoxOutput('snd_score'),
-                tableOutput("all_snd_maps_table")
-        )
+        # tabItem(tabName = "search",
+        #         box(
+        #             selectInput(inputId = 'snd_select',
+        #                         label = "Choose Specific Map",
+        #                         choices = snd_list %>% append(list("All"=1)),
+        #                         selected = 1
+        #             ),width = 3
+        #         ),
+        #         valueBoxOutput('snd_score'),
+        #         tableOutput("all_snd_maps_table")
+        # )
     )
     
 )

@@ -7,7 +7,7 @@ library(tidyverse)
 con <- DBI::dbConnect(drv = RMySQL::MySQL(),
                       dbname = "callofduty",
                       username    = 'admin',
-                      password    = "guerrillas",
+                      password    = "laguerrillas",
                       host = "database-1.cyhyxhbkkfox.us-east-2.rds.amazonaws.com",
                       port = 3306)
 ref_q <- tbl(con, "REFERENCE")

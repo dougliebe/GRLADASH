@@ -7,7 +7,7 @@ library(tidyverse)
 con <- DBI::dbConnect(drv = RMySQL::MySQL(),
                       dbname = "callofduty",
                       username    = 'admin',
-                      password    = "guerrillas",
+                      password    = "laguerrillas",
                       host = "database-1.cyhyxhbkkfox.us-east-2.rds.amazonaws.com",
                       port = 3306)
 ref_q <- tbl(con, "REFERENCE")
@@ -135,11 +135,14 @@ scores %>%
 ## now combine score info per second and kills
 pp_data %>%
   inner_join(was_traded, by = c("GAME_ID", "TIME_S")) %>%
-  inner_join(game_q %>% left_join(series_q) %>% filter(DATE >= "2021-04-15") %>%
+  inner_join(game_q %>% left_join(series_q) %>% filter(DATE >= "2021-05-8") %>%
                collect() %>% select(GAME_ID, SERIES_ID)) %>%
   # group_by(SERIES_ID) %>% count()
   # filter(SERIES_ID == 138) %>%
   pivot_longer(c(PLAYER_A, PLAYER_B)) %>%
+  mutate(value = tolower(parse_character(value))) %>%
+  mutate(value = ifelse(endsWith(value, 'cheen'), 'cheen',value))%>%
+  filter((value %in% c('cheen',"assault", "silly", "apathy")))  %>%
   mutate(hill_side = ifelse(MODE_ID == 1, as.character(hill_no), side)) %>%
   group_by(hill_side, MAP_ID, MODE_ID, value, name, traded=in_trade_eng) %>%
   summarise(n = n(), games = length(unique(GAME_ID))) %>%
@@ -159,8 +162,7 @@ pp_data %>%
          kd = (KILL_FALSE+KILL_TRUE)/(DEATH_TRUE+DEATH_FALSE),
          # epm = (KILL_FALSE+KILL_TRUE+DEATH_TRUE+DEATH_FALSE)/duration*60,
          pm = KILL_FALSE + 0.2*KILL_TRUE - 0.2*DEATH_TRUE - DEATH_FALSE,
-         value = tolower(value)) %>%
-  filter((value %in% c('mjcheen','cheen',"vivid","assault", "silly", "apathy"))) ->
+         value = tolower(value)) ->
   all_games_trade_box 
 
 ## add durations and get season averages
@@ -254,7 +256,8 @@ pp_data %>%
 
 ## pm by hill
 all_games_trade_box %>%
-  filter(MODE_ID %in% c(1)) %>%
+  filter(MODE_ID %in% c(1),
+         MAP_ID != 53) %>%
   left_join(map_q %>% collect() , by = "MAP_ID") %>%
   ggplot(aes(as.numeric(hill_side), pm, color = value))+
   # geom_col(position = position_dodge(0.5)) +
@@ -267,17 +270,24 @@ all_games_trade_box %>%
        subtitle = "Less weight to net-zero engaegments: \ntraded deaths & tradable kills")
 # traded_deaths
 all_games_trade_box %>%
-  filter(MODE_ID %in% c(1)) %>%
+  filter(MODE_ID %in% c(1),
+         MAP_ID != 53,
+         value == "silly") %>%
+  pivot_longer(c(traded_deaths, untraded_KILL ),
+               names_to = 'stat',
+               values_to = "stat_value") %>% 
   left_join(map_q %>% collect() , by = "MAP_ID") %>%
-  ggplot(aes(as.numeric(hill_side), traded_deaths, color = value))+
+  ggplot(aes(as.numeric(hill_side), stat_value, color = stat))+
   geom_line() +
   geom_point(size = 2) +
-  facet_wrap(~MAP_NAME,scales = 'free') +
+  facet_wrap(~MAP_NAME,scales = 'free_x') +
   theme_bw()+
-  labs(x = "HILL", y = "Deaths Traded, %")
+  labs(x = "HILL", y = "Deaths Traded or Untraded Kills\nmore is better for both")
 # kd
 all_games_trade_box %>%
-  filter(MODE_ID %in% c(1)) %>%
+  filter(MODE_ID %in% c(1),
+         MAP_ID != 53,
+         value == "silly") %>%
   left_join(map_q %>% collect() , by = "MAP_ID") %>%
   ggplot(aes(as.numeric(hill_side), kd/(1+kd), color = value))+
   geom_hline(yintercept = 0.5, alpha = 0.5) +
@@ -285,7 +295,7 @@ all_games_trade_box %>%
   geom_point(size = 2) +
   facet_wrap(~MAP_NAME,scales = 'free_x') +
   theme_bw()+
-  labs(x = "HILL", y = "KD")
+  labs(x = "HILL", y = "Eng Win%")
 
 
 ## now combine score info per second and kills

@@ -7,7 +7,7 @@ library(tidyverse)
 con <- DBI::dbConnect(drv = RMySQL::MySQL(),
                       dbname = "callofduty",
                       username    = 'admin',
-                      password    = "guerrillas",
+                      password    = "laguerrillas",
                       host = "database-1.cyhyxhbkkfox.us-east-2.rds.amazonaws.com",
                       port = 3306)
 ref_q <- tbl(con, "REFERENCE")
@@ -88,17 +88,10 @@ was_traded %>%
 # get relevant games form series
 series_q %>%
   left_join(game_q, by = "SERIES_ID") %>%
-<<<<<<< HEAD
   # filter(MAP_ID != 49) %>%
-  filter(MODE_ID %in% c(1,3)) %>%
-  # filter(DATE >= "2021-05-03") %>%
-  filter(SERIES_ID %in% c(244,245)) %>%
-=======
-  filter(MAP_ID < 52) %>%
-  filter(MODE_ID %in% c(1)) %>%
-  # filter(DATE >= "2021-03-01") %>%
-  # filter(SERIES_ID %in% c(228,227)) %>%
->>>>>>> b29325a23b483e9fa95ce5467743af6a33812ab5
+  filter(MODE_ID %in% c(3)) %>%
+  filter(DATE >= "2021-05-01") %>%
+  # filter(SERIES_ID %in% c(254, 253)) %>%
   # filter(A_ID == 8 | B_ID == 8) %>%
   select(GAME_ID, MAP_ID, MODE_ID, TEAM_A_SCORE, TEAM_B_SCORE) %>%
   collect() ->
@@ -130,34 +123,25 @@ out %>%
          team = case_when(value %in% c("vivid",'cheen',"assault", "silly", "apathy") ~ "LAG",
                           TRUE ~ "THEM")) %>%
   # filter(TEAM_ID == 14) %>%
-  # filter(value == "dylan") %>%
+  # filter(value == "vivid") %>%
   # filter(value %in% c("cheen", 'nero','mental','exceed')) %>%
-<<<<<<< HEAD
-  filter(value %in% c("cheen","assault", "silly", "apathy")) %>%
-=======
-  # filter(value %in% c("vivid","assault", "silly", "apathy")) %>%
->>>>>>> b29325a23b483e9fa95ce5467743af6a33812ab5
+  # filter(value %in% c("cheen","assault", "silly", "apathy")) %>%
   group_by( value) %>%
   summarise(untraded_KILL = sum(KILL_FALSE)/sum(KILL_FALSE+KILL_TRUE),
-          traded_deaths = sum(DEATH_TRUE)/sum(DEATH_TRUE+DEATH_FALSE),
-          kills = sum(KILL_FALSE+KILL_TRUE),
-          deaths = sum(DEATH_TRUE+DEATH_FALSE),
-          kd = sum(KILL_FALSE+KILL_TRUE)/sum(DEATH_TRUE+DEATH_FALSE),
-          pmpm = sum(KILL_FALSE+KILL_TRUE-DEATH_TRUE-DEATH_FALSE)/sum(duration)*60,
-          epm = sum(KILL_FALSE+KILL_TRUE+DEATH_TRUE+DEATH_FALSE)/sum(duration)*60,
-          pm10 = sum(pm)/sum(duration)*600,
-          games = length(unique(GAME_ID))
-          ) %>%
-          mutate(corr_epm = epm + (-0.3*pmpm)
-<<<<<<< HEAD
-         )%>%
-  select(-pmpm, -epm)
-=======
-         ) %>%
-  arrange( (traded_deaths)) %>%
-  filter(kills > 200) %>%
+            traded_deaths = sum(DEATH_TRUE)/sum(DEATH_TRUE+DEATH_FALSE),
+            kills = sum(KILL_FALSE+KILL_TRUE),
+            deaths = sum(DEATH_TRUE+DEATH_FALSE),
+            kd = sum(KILL_FALSE+KILL_TRUE)/sum(DEATH_TRUE+DEATH_FALSE),
+            pmpm = sum(KILL_FALSE+KILL_TRUE-DEATH_TRUE-DEATH_FALSE)/sum(duration)*60,
+            epm = sum(KILL_FALSE+KILL_TRUE+DEATH_TRUE+DEATH_FALSE)/sum(duration)*60,
+            pm10 = sum(pm)/sum(duration)*600,
+            games = length(unique(GAME_ID))
+  ) %>%
+  mutate(corr_epm = epm + (-0.3*pmpm)
+  )%>%
+  select(-pmpm, -epm) %>% 
+  arrange(desc(games)) %>% 
   view()
->>>>>>> b29325a23b483e9fa95ce5467743af6a33812ab5
 
 ### plot utk and td for each map player
 
@@ -199,6 +183,7 @@ out %>%
             games = length(unique(GAME_ID))
   ) %>%
   left_join(map_q %>% collect()) %>%
+  filter(MAP_NAME != "Standoff") %>% 
   left_join(mode_q %>% collect()) %>%
   mutate(corr_epm = epm + (-0.2*pmpm),
          map_mode = paste0(MODE_ALIAS,"\n", MAP_NAME),
